@@ -3,24 +3,24 @@ use std::{env, process::exit};
 use clap::{Parser, Subcommand};
 
 fn main() {
-    let cli = Cli::parse();    
+    let cli = Cli::parse();
 
     match &cli.command {
         Some(Commands::Set { key, value }) => {
             eprintln!("unimplemented");
             exit(1);
-        },
+        }
         Some(Commands::Get { key }) => {
             eprintln!("unimplemented");
             exit(1);
-        },
+        }
         Some(Commands::Rm { key }) => {
             eprintln!("unimplemented");
             exit(1);
-        },
+        }
         None => {
             exit(1);
-        },
+        }
     }
 }
 
@@ -31,15 +31,14 @@ fn main() {
 struct Cli {
     #[command(subcommand)]
     command: Option<Commands>,
-
 }
 
 #[derive(Subcommand)]
 enum Commands {
     /// Set <key, value> pair
-    Set {key: String, value: String},
+    Set { key: String, value: String },
     /// Search the value for key
-    Get {key: String},
+    Get { key: String },
     /// Remove the <key, value> pair if exists
-    Rm  {key: String},
+    Rm { key: String },
 }

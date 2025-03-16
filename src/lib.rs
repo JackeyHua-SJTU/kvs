@@ -1,11 +1,11 @@
 #![deny(missing_docs)]
 
 //! A simple in-memory key-value store library.
-//! 
+//!
 //! You can store, query, and remove key value pair.
-//! 
+//!
 //! # Examples
-//! 
+//!
 //! ```
 //! use kvs::KvStore;
 //! let mut kvs = KvStore::new();
@@ -21,15 +21,14 @@ use std::collections::HashMap;
 
 /// A key value store
 pub struct KvStore {
-
     store: HashMap<String, String>,
 }
 
 impl KvStore {
     /// Create a new KvStore
-    /// 
+    ///
     /// # Examples
-    /// 
+    ///
     /// ```
     /// use kvs::KvStore;
     /// let kvs = KvStore::new();    
@@ -41,9 +40,9 @@ impl KvStore {
     }
 
     /// Map `key` to `value` in the kv store
-    /// 
+    ///
     /// # Examples
-    /// 
+    ///
     /// ```
     /// use kvs::KvStore;
     /// let mut kvs = KvStore::new();
@@ -55,9 +54,9 @@ impl KvStore {
 
     /// If `key` is in the kv store, return the `Some(value)`
     /// Otherwise, return `None`
-    /// 
+    ///
     /// # Examples
-    /// 
+    ///
     /// ```
     /// use kvs::KvStore;
     /// let mut kvs = KvStore::new();
@@ -70,18 +69,14 @@ impl KvStore {
     /// ```
     pub fn get(&self, key: String) -> Option<String> {
         let q = self.store.get(&key);
-        match q {
-            Some(s) => Some(s.clone()),
-            None => None,
-        }
-        
+        q.map(|x| x.clone())
     }
 
     /// If `key` is in the kv store, remove it
     /// Otherwise, do nothing
-    /// 
+    ///
     /// # Examples
-    /// 
+    ///
     /// ```
     /// use kvs::KvStore;
     /// let mut kvs = KvStore::new();
@@ -94,5 +89,11 @@ impl KvStore {
     /// ```
     pub fn remove(&mut self, key: String) {
         self.store.remove(&key).unwrap();
+    }
+}
+
+impl Default for KvStore {
+    fn default() -> Self {
+        Self::new()
     }
 }
