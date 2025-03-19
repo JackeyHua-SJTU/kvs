@@ -1,5 +1,5 @@
-use std::io;
 use failure::Fail;
+use std::io;
 
 /// Self defined Error enum
 #[derive(Fail, Debug)]

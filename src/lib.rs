@@ -17,34 +17,34 @@
 //! assert_eq!(kvs.get(String::from("jack")), None);
 //! ```
 
+use error::KvsError;
+use error::Result;
+use serde::{Deserialize, Serialize};
 use std::fs::{self, OpenOptions};
 use std::io::{BufRead, BufReader, BufWriter, Read, Seek, SeekFrom};
 use std::mem;
 use std::path::PathBuf;
 use std::{collections::HashMap, env, fs::File, io::Write};
-use serde::{Deserialize, Serialize};
-use error::Result;
-use error::KvsError;
 
-/// defines the error abstraction 
+/// defines the error abstraction
 pub mod error;
 
 /// The maximum size of a kvs log.
 /// Compact if exceeds.
-const THRESHOLD: usize = 1024;   // 1KB
+const THRESHOLD: usize = 1024; // 1KB
 
 /// A key value store
 pub struct KvStore {
     // key to pointer of log
     store: HashMap<String, usize>,
     dir: PathBuf,
-    log: File
+    log: File,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 pub enum Op {
-    Set {key: String, value: String},
-    Rm {key: String},
+    Set { key: String, value: String },
+    Rm { key: String },
 }
 
 impl KvStore {
@@ -62,13 +62,13 @@ impl KvStore {
         let cwd = env::current_dir()?;
         Self::open(cwd)
     }
-    
+
     /// Create a new KvStorage
     /// Load `kvs.log` from the `path` directory
     /// `kvs.log` will be created if it does not exist
-    /// 
+    ///
     /// # Examples
-    /// 
+    ///
     /// ```
     /// use kvs::KvStore;
     /// let kvs = KvStore::path(env::current_dir().unwrap()).unwrap();
@@ -78,16 +78,15 @@ impl KvStore {
         let dir: PathBuf = path.into();
         let file = dir.join("kvs.log");
         let log = OpenOptions::new()
-                                .append(true)
-                                .create(true)
-                                .read(true)
-                                .open(file)?;        
+            .append(true)
+            .create(true)
+            .read(true)
+            .open(file)?;
         let mut kvs = Self { store, dir, log };
 
         kvs.load()?;
 
         Ok(kvs)
-    
     }
 
     /// Map `key` to `value` in the kv store
@@ -100,12 +99,18 @@ impl KvStore {
     /// kvs.set("jack".to_string(), "2024".to_string()).unwrap();
     /// ```
     pub fn set(&mut self, key: String, value: String) -> Result<()> {
-        let cur_op = Op::Set { key: key.clone(), value: value.clone() };
+        let cur_op = Op::Set {
+            key: key.clone(),
+            value: value.clone(),
+        };
         let serial = serde_json::to_string(&cur_op)?;
-        let offset = self.log.seek(SeekFrom::End(0))?;      // The length of the file
+        let offset = self.log.seek(SeekFrom::End(0))?; // The length of the file
         self.log.write_all(serial.as_bytes())?;
         self.log.write_all(b"\n")?;
-        self.store.entry(key).and_modify(|v| *v = offset as usize ).or_insert(offset as usize);
+        self.store
+            .entry(key)
+            .and_modify(|v| *v = offset as usize)
+            .or_insert(offset as usize);
         self.compact()
     }
 
@@ -128,7 +133,7 @@ impl KvStore {
         if self.store.contains_key(&key) {
             let offset = *self.store.get(&key).unwrap();
             self.log.seek(SeekFrom::Start(offset as u64))?;
-        
+
             let mut reader = BufReader::new(&self.log);
             let mut res = String::new();
 
@@ -187,9 +192,9 @@ impl KvStore {
             let line = line.unwrap();
             let op: Op = serde_json::from_str(&line)?;
             match op {
-                Op::Set { key, value: _ } => { 
+                Op::Set { key, value: _ } => {
                     self.store.insert(key, offset);
-                },
+                }
                 Op::Rm { key } => {
                     self.store.remove(&key).unwrap();
                 }
@@ -210,11 +215,11 @@ impl KvStore {
 
         // In `self.store`, all live datas are there
         let mut new_file = OpenOptions::new()
-                                        .create(true)
-                                        .read(true)
-                                        .append(true)
-                                        .open(self.dir.join("tmp.log"))?;
-        
+            .create(true)
+            .read(true)
+            .append(true)
+            .open(self.dir.join("tmp.log"))?;
+
         let mut writer = BufWriter::new(&new_file);
 
         self.log.seek(SeekFrom::Start(0))?;
@@ -235,7 +240,7 @@ impl KvStore {
         drop(writer);
 
         // modify the log and rename the new file
-        
+
         mem::swap(&mut self.log, &mut new_file);
         drop(new_file);
         fs::remove_file(self.dir.join("kvs.log"))?;
