@@ -1,10 +1,8 @@
-use criterion::{criterion_group, criterion_main, BatchSize, Criterion};
-use kvs::engine::{kvs::KvStore, KvsEngine, sled::SledKvsEngine};
+use criterion::{BatchSize, Criterion, criterion_group, criterion_main};
+use kvs::engine::{KvsEngine, kvs::KvStore, sled::SledKvsEngine};
 use rand::prelude::*;
 use sled;
 use tempfile::TempDir;
-
-
 
 fn set_bench(c: &mut Criterion) {
     let mut group = c.benchmark_group("set_bench");
@@ -26,7 +24,10 @@ fn set_bench(c: &mut Criterion) {
         b.iter_batched(
             || {
                 let temp_dir = TempDir::new().unwrap();
-                (SledKvsEngine::open(sled::open(&temp_dir).unwrap()), temp_dir)
+                (
+                    SledKvsEngine::open(sled::open(&temp_dir).unwrap()),
+                    temp_dir,
+                )
             },
             |(mut db, _temp_dir)| {
                 for i in 1..(1 << 8) {
@@ -68,7 +69,8 @@ fn get_bench(c: &mut Criterion) {
             }
             let mut rng = rand::rng();
             b.iter(|| {
-                db.get(format!("key{}", rng.random_range(1..(1 << i)))).unwrap();
+                db.get(format!("key{}", rng.random_range(1..(1 << i))))
+                    .unwrap();
             })
         });
     }

@@ -1,10 +1,15 @@
 use failure::Fail;
-use std::{io, string::FromUtf8Error};
+use std::{io, num::ParseIntError, string::FromUtf8Error};
 
 use crate::protocol::{GetResponse, RmResponse, SetResponse};
 
 /// Self defined Error enum
-/// TODO: Add possible error for network connection and any other failure situation
+///
+/// String Error is added, because we do not serialize KvsError.
+/// So we can not put a KvsError in the Err part of a `Response`
+/// However we can convert it into a string, and use String Error
+/// to catch it in the client side.
+
 #[derive(Fail, Debug)]
 pub enum KvsError {
     /// handle io error
@@ -26,6 +31,8 @@ pub enum KvsError {
     StringError(String),
     #[fail(display = "utf 8 error: {}", _0)]
     Utf8Error(FromUtf8Error),
+    #[fail(display = "parse int error: {}", _0)]
+    ParseIntError(ParseIntError),
 }
 
 impl From<io::Error> for KvsError {
@@ -52,9 +59,16 @@ impl From<FromUtf8Error> for KvsError {
     }
 }
 
+impl From<ParseIntError> for KvsError {
+    fn from(value: ParseIntError) -> Self {
+        Self::ParseIntError(value)
+    }
+}
+
 /// Type alias for Result
 pub type Result<T> = std::result::Result<T, KvsError>;
 
+/// Convert the result of `get/set/rm` query into common struct
 
 impl From<Result<Option<String>>> for GetResponse {
     fn from(value: Result<Option<String>>) -> Self {

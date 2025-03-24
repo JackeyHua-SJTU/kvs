@@ -1,9 +1,7 @@
-use serde::{Serialize, Deserialize};
-
-use crate::error::{KvsError, Result};
+use serde::{Deserialize, Serialize};
 
 /// A common request format for both server and client
-/// 
+///
 /// Server deserializes the request and serialize the response.
 /// Client serializes the request and deserialize the response.
 
@@ -11,7 +9,7 @@ use crate::error::{KvsError, Result};
 pub enum Request {
     Get { key: String },
     Set { key: String, value: String },
-    Rm  { key: String },
+    Rm { key: String },
 }
 
 /// Err will hold string
@@ -34,4 +32,3 @@ pub enum RmResponse {
     Ok,
     Err(String),
 }
-
