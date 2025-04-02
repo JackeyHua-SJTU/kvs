@@ -1,8 +1,10 @@
+use std::sync::{
+    Arc, Mutex,
+    mpsc::{Receiver, Sender, channel},
+};
 use std::thread;
-use std::sync::{mpsc::{Receiver, Sender, channel}, Arc, Mutex};
 
 use log::trace;
-
 
 type Message = Box<dyn FnOnce() + Send + 'static>;
 pub struct ThreadPool {
@@ -41,10 +43,12 @@ impl ThreadPool {
     }
 
     pub fn poll(&mut self) {
-        let dead: Vec<usize> = self.worker.iter()
-                                            .filter(|&x| x.is_end())
-                                            .map(|x| x.id)
-                                            .collect();
+        let dead: Vec<usize> = self
+            .worker
+            .iter()
+            .filter(|&x| x.is_end())
+            .map(|x| x.id)
+            .collect();
         for &i in dead.iter() {
             self.worker[i] = Worker::new(i, Arc::clone(self.receiver.as_ref().unwrap()));
         }
@@ -58,7 +62,10 @@ impl Drop for ThreadPool {
 
         for worker in self.worker.drain(..) {
             trace!("Error in joining thread {}", worker.id);
-            worker.handle.join().expect("Error happens in joining thread");
+            worker
+                .handle
+                .join()
+                .expect("Error happens in joining thread");
         }
     }
 }
@@ -67,14 +74,12 @@ impl Worker {
     pub fn new(id: usize, rx: Arc<Mutex<Receiver<Message>>>) -> Self {
         let handle = thread::spawn(move || {
             loop {
-                let message = rx.lock()
-                                                                        .unwrap()
-                                                                        .recv();
+                let message = rx.lock().unwrap().recv();
                 match message {
                     Ok(f) => {
                         trace!("thread {} receives a task.", id);
                         f();
-                    },
+                    }
                     Err(_) => {
                         trace!("thread {} shuts down", id);
                         break;
@@ -83,10 +88,7 @@ impl Worker {
             }
         });
 
-        Self {
-            handle,
-            id,
-        }
+        Self { handle, id }
     }
 
     fn is_end(&self) -> bool {

@@ -159,7 +159,6 @@ fn cli_log_configuration() {
     let mut child = cmd
         .args(&["--engine", "kvs", "--addr", "127.0.0.1:4001"])
         .current_dir(&temp_dir)
-        .env("RUST_LOG", "trace")
         .stderr(File::create(&stderr_path).unwrap())
         .spawn()
         .unwrap();
@@ -307,7 +306,7 @@ fn cli_access_server(engine: &str, addr: &str) {
         let _ = receiver.recv(); // wait for main thread to finish
         child.kill().expect("server exited before killed");
     });
-    thread::sleep(Duration::from_secs(2));
+    thread::sleep(Duration::from_secs(1));
 
     Command::cargo_bin("kvs-client")
         .unwrap()

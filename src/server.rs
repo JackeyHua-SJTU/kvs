@@ -5,13 +5,13 @@ use std::{
 
 use log::trace;
 
-use crate::engine::KvsEngine;
+use crate::engine::{KvsEngine, kvs::KvStore};
 use crate::{
     error::KvsError,
     protocol::{GetResponse, Request, RmResponse, SetResponse},
 };
 
-pub fn handle_stream(stream: TcpStream, engine: &mut Box<dyn KvsEngine>) {
+pub fn handle_stream(stream: TcpStream, engine: KvStore) {
     let mut buffer = Vec::new();
     trace!("start to retrieve info from the stream");
     let mut reader = BufReader::new(&stream);

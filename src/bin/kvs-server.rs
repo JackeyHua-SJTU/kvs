@@ -1,9 +1,9 @@
-use kvs::engine::KvsEngine;
 use kvs::engine::kvs::KvStore;
-use kvs::engine::sled::SledKvsEngine;
+// use kvs::engine::sled::SledKvsEngine;
 
 use clap::Parser;
-use kvs::error::{KvsError, Result};
+use kvs::error::Result;
+use kvs::thread_pool::ThreadPool;
 use log::trace;
 use std::env;
 use std::fs::OpenOptions;
@@ -12,6 +12,9 @@ use std::net::TcpListener;
 use std::process::exit;
 
 use kvs::server;
+
+const THREAD_POOL_SIZE: usize = 16;
+const REGULAR_CHECK: i32 = 5;
 
 fn main() -> Result<()> {
     env_logger::init();
@@ -79,36 +82,47 @@ fn run(cli: Cli) -> Result<()> {
     // Monitor the IP:Port and Respond
     let listener = TcpListener::bind(cli.ip)?;
     trace!("Server starts to monitor the network address");
+    assert_eq!(cli.engine, String::from("kvs"));
+    // ! We now assume the engine will always be `kvstore`
+    // let mut engine: Box<dyn KvsEngine> = match cli.engine.as_str() {
+    //     "kvs" => match KvStore::new() {
+    //         Ok(store) => {
+    //             trace!("Create a kv store as backend");
+    //             Box::new(store)
+    //         }
+    //         Err(_) => {
+    //             trace!("Fail to create a kvs store");
+    //             return Err(KvsError::UnexpectedType);
+    //         }
+    //     },
+    //     "sled" => match SledKvsEngine::new() {
+    //         Ok(store) => {
+    //             trace!("Create a sled as backend");
+    //             Box::new(store)
+    //         }
+    //         Err(_) => {
+    //             trace!("Fail to create a sled engine");
+    //             return Err(KvsError::UnexpectedType);
+    //         }
+    //     },
+    //     _ => return Err(KvsError::UnexpectedType),
+    // };
 
-    let mut engine: Box<dyn KvsEngine> = match cli.engine.as_str() {
-        "kvs" => match KvStore::new() {
-            Ok(store) => {
-                trace!("Create a kv store as backend");
-                Box::new(store)
-            }
-            Err(_) => {
-                trace!("Fail to create a kvs store");
-                return Err(KvsError::UnexpectedType);
-            }
-        },
-        "sled" => match SledKvsEngine::new() {
-            Ok(store) => {
-                trace!("Create a sled as backend");
-                Box::new(store)
-            }
-            Err(_) => {
-                trace!("Fail to create a sled engine");
-                return Err(KvsError::UnexpectedType);
-            }
-        },
-        _ => return Err(KvsError::UnexpectedType),
-    };
-
+    let kvs = KvStore::new()?;
+    let mut pool = ThreadPool::new(THREAD_POOL_SIZE);
+    let mut cnt = 0;
     for stream in listener.incoming() {
+        cnt = (cnt + 1) % REGULAR_CHECK;
+        if cnt == 0 {
+            pool.poll();
+        }
         match stream {
             Ok(s) => {
                 trace!("receive a command");
-                server::handle_stream(s, &mut engine);
+                let cur_kvs = kvs.clone();
+                pool.spawn(Box::new(move || {
+                    server::handle_stream(s, cur_kvs);
+                }));
             }
             Err(e) => {
                 trace!("Fail to receive from listerner");
